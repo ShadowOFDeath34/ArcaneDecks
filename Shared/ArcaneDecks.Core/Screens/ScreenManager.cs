@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
+using ArcaneDecks.Core.Services;
 
 namespace ArcaneDecks.Core.Screens;
 
@@ -11,6 +12,8 @@ public class ScreenManager
 
     public GraphicsDevice GraphicsDevice { get; }
     public ContentManager Content { get; }
+    public IAuthService? AuthService { get; set; }
+    public IBackendService? BackendService { get; set; }
 
     public ScreenManager(GraphicsDevice graphicsDevice, ContentManager content)
     {

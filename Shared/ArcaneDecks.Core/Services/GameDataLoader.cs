@@ -54,8 +54,14 @@ public class GameDataLoader
         var json = File.ReadAllText(path);
         var root = JsonSerializer.Deserialize<EnemyDataRoot>(json);
         var enemies = new List<EnemyTemplate>();
-        if (root?.Enemies != null) enemies.AddRange(root.Enemies);
-        if (root?.Bosses != null) enemies.AddRange(root.Bosses);
+        if (root?.Enemies != null)
+        {
+            foreach (var e in root.Enemies) { e.IsBoss = false; enemies.Add(e); }
+        }
+        if (root?.Bosses != null)
+        {
+            foreach (var b in root.Bosses) { b.IsBoss = true; enemies.Add(b); }
+        }
         return enemies;
     }
 
@@ -109,4 +115,5 @@ public class EnemyTemplate
     public int MaxHealth { get; set; }
     public int Damage { get; set; }
     public int Armor { get; set; }
+    public bool IsBoss { get; set; }
 }

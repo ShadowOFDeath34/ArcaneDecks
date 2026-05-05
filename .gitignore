@@ -41,3 +41,6 @@ logs/
 # Misc
 publish/
 dist/
+
+# TypeScript
+*.tsbuildinfo
