@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
 using ArcaneDecks.Core.Services;
 using ArcaneDecks.Core.Systems;
+using ArcaneDecks.Core.UI;
 
 namespace ArcaneDecks.Core.Screens;
 
@@ -103,6 +104,11 @@ public class ShopScreen : IScreen
 
         // Background
         spriteBatch.Draw(_pixel, _graphics.Viewport.Bounds, new Color(25, 20, 45));
+
+        // Mini-map
+        var mapSize = MiniMapRenderer.MeasureSize(_runManager.State.FloorPlan.Count);
+        var mapPos = new Vector2((_graphics.Viewport.Width - mapSize.X) / 2, 10);
+        MiniMapRenderer.Draw(spriteBatch, _pixel, _runManager, mapPos);
 
         // Title
         var titleText = _localization.Get("ui.shop.title");

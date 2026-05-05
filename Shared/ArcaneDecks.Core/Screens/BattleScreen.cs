@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
 using ArcaneDecks.Core.Services;
 using ArcaneDecks.Core.Systems;
+using ArcaneDecks.Core.UI;
 
 namespace ArcaneDecks.Core.Screens;
 
@@ -166,6 +167,11 @@ public class BattleScreen : IScreen
         var floorSize = _font.MeasureString(floorText);
         var floorPos = new Vector2((_graphics.Viewport.Width - floorSize.X) / 2, 6);
         spriteBatch.DrawString(_font, floorText, floorPos, Color.LightGray);
+
+        // Mini-map
+        var mapSize = MiniMapRenderer.MeasureSize(_runManager.State.FloorPlan.Count);
+        var mapPos = new Vector2((_graphics.Viewport.Width - mapSize.X) / 2, floorPos.Y + floorSize.Y + 4);
+        MiniMapRenderer.Draw(spriteBatch, _pixel, _runManager, mapPos);
 
         // Player panel (top left)
         DrawEntityPanel(spriteBatch, _player, 20, 28);
