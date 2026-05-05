@@ -1,0 +1,48 @@
+{
+  "enemies": [
+    {
+      "id": "goblin_grunt",
+      "nameKey": "entity.goblin_grunt.name",
+      "maxHealth": 30,
+      "damage": 7,
+      "armor": 0
+    },
+    {
+      "id": "goblin_archer",
+      "nameKey": "entity.goblin_archer.name",
+      "maxHealth": 25,
+      "damage": 5,
+      "armor": 0
+    },
+    {
+      "id": "goblin_shaman",
+      "nameKey": "entity.goblin_shaman.name",
+      "maxHealth": 35,
+      "damage": 4,
+      "armor": 0
+    },
+    {
+      "id": "goblin_berserker",
+      "nameKey": "entity.goblin_berserker.name",
+      "maxHealth": 40,
+      "damage": 9,
+      "armor": 0
+    },
+    {
+      "id": "goblin_knight",
+      "nameKey": "entity.goblin_knight.name",
+      "maxHealth": 50,
+      "damage": 6,
+      "armor": 5
+    }
+  ],
+  "bosses": [
+    {
+      "id": "goblin_warlord",
+      "nameKey": "entity.goblin_warlord.name",
+      "maxHealth": 80,
+      "damage": 10,
+      "armor": 5
+    }
+  ]
+}

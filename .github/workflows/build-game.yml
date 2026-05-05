@@ -1,0 +1,113 @@
+name: Build Game
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Shared/**'
+      - 'Platforms/**'
+      - 'backend/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Shared/**'
+      - 'Platforms/**'
+      - 'backend/**'
+      - '.github/workflows/**'
+
+jobs:
+  build-desktopgl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj
+
+      - name: Build DesktopGL
+        run: dotnet build Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj --no-restore --configuration Release
+
+      - name: Publish DesktopGL
+        run: dotnet publish Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj --no-build --configuration Release --output ${{ github.workspace }}/publish/desktopgl
+
+      - name: Upload DesktopGL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcaneDecks-DesktopGL
+          path: ${{ github.workspace }}/publish/desktopgl
+
+  build-android:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android licenses
+        run: yes | sdkmanager --licenses || true
+        shell: bash
+
+      - name: Install Android platforms
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        shell: bash
+
+      - name: Restore dependencies
+        run: dotnet restore Platforms/ArcaneDecks.Android/ArcaneDecks.Android.csproj
+
+      - name: Build Android
+        run: dotnet build Platforms/ArcaneDecks.Android/ArcaneDecks.Android.csproj --no-restore --configuration Release
+
+      - name: Publish Android
+        run: dotnet publish Platforms/ArcaneDecks.Android/ArcaneDecks.Android.csproj --no-build --configuration Release --output ${{ github.workspace }}/publish/android
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcaneDecks-Android
+          path: ${{ github.workspace }}/publish/android
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Restore dependencies
+        run: dotnet restore Platforms/ArcaneDecks.iOS/ArcaneDecks.iOS.csproj
+
+      - name: Build iOS
+        run: dotnet build Platforms/ArcaneDecks.iOS/ArcaneDecks.iOS.csproj --no-restore --configuration Release
+
+      - name: Publish iOS
+        run: dotnet publish Platforms/ArcaneDecks.iOS/ArcaneDecks.iOS.csproj --no-build --configuration Release --output ${{ github.workspace }}/publish/ios
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcaneDecks-iOS
+          path: ${{ github.workspace }}/publish/ios

@@ -1,0 +1,43 @@
+# .NET / MonoGame
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.userprefs
+
+# NuGet
+packages/
+
+# Backend / Next.js
+backend/node_modules/
+backend/.next/
+backend/out/
+backend/.env.local
+backend/.env.*.local
+backend/npm-debug.log*
+backend/yarn-debug.log*
+backend/yarn-error.log*
+
+# MonoGame Content Pipeline
+*.mgcontent
+*.mgstats
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Misc
+publish/
+dist/

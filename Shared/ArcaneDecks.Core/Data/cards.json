@@ -1,0 +1,230 @@
+{
+  "cards": [
+    {
+      "id": "strike",
+      "nameKey": "card.strike.name",
+      "descriptionKey": "card.strike.desc",
+      "cost": 1,
+      "type": "Attack",
+      "rarity": "Common",
+      "effects": [
+        { "type": "Damage", "value": 6 }
+      ]
+    },
+    {
+      "id": "defend",
+      "nameKey": "card.defend.name",
+      "descriptionKey": "card.defend.desc",
+      "cost": 1,
+      "type": "Skill",
+      "rarity": "Common",
+      "effects": [
+        { "type": "Block", "value": 5 }
+      ]
+    },
+    {
+      "id": "quick_strike",
+      "nameKey": "card.quick_strike.name",
+      "descriptionKey": "card.quick_strike.desc",
+      "cost": 0,
+      "type": "Attack",
+      "rarity": "Common",
+      "effects": [
+        { "type": "Damage", "value": 3 }
+      ]
+    },
+    {
+      "id": "bash",
+      "nameKey": "card.bash.name",
+      "descriptionKey": "card.bash.desc",
+      "cost": 2,
+      "type": "Attack",
+      "rarity": "Common",
+      "effects": [
+        { "type": "Damage", "value": 8 },
+        { "type": "DestroyArmor", "value": 2 }
+      ]
+    },
+    {
+      "id": "lesser_heal",
+      "nameKey": "card.lesser_heal.name",
+      "descriptionKey": "card.lesser_heal.desc",
+      "cost": 1,
+      "type": "Skill",
+      "rarity": "Common",
+      "effects": [
+        { "type": "Heal", "value": 4 }
+      ]
+    },
+    {
+      "id": "throw_rock",
+      "nameKey": "card.throw_rock.name",
+      "descriptionKey": "card.throw_rock.desc",
+      "cost": 0,
+      "type": "Attack",
+      "rarity": "Common",
+      "effects": [
+        { "type": "Damage", "value": 2 }
+      ]
+    },
+    {
+      "id": "brace",
+      "nameKey": "card.brace.name",
+      "descriptionKey": "card.brace.desc",
+      "cost": 2,
+      "type": "Skill",
+      "rarity": "Common",
+      "effects": [
+        { "type": "Block", "value": 8 }
+      ]
+    },
+    {
+      "id": "goblin_sapper",
+      "nameKey": "card.goblin_sapper.name",
+      "descriptionKey": "card.goblin_sapper.desc",
+      "cost": 1,
+      "type": "Attack",
+      "rarity": "Common",
+      "effects": [
+        { "type": "Damage", "value": 4 },
+        { "type": "DestroyArmor", "value": 5 }
+      ]
+    },
+    {
+      "id": "bandage",
+      "nameKey": "card.bandage.name",
+      "descriptionKey": "card.bandage.desc",
+      "cost": 0,
+      "type": "Skill",
+      "rarity": "Common",
+      "effects": [
+        { "type": "Heal", "value": 3 }
+      ]
+    },
+    {
+      "id": "piercing_strike",
+      "nameKey": "card.piercing_strike.name",
+      "descriptionKey": "card.piercing_strike.desc",
+      "cost": 1,
+      "type": "Attack",
+      "rarity": "Common",
+      "effects": [
+        { "type": "Damage", "value": 4 },
+        { "type": "DestroyArmor", "value": 3 }
+      ]
+    },
+    {
+      "id": "fireball",
+      "nameKey": "card.fireball.name",
+      "descriptionKey": "card.fireball.desc",
+      "cost": 2,
+      "type": "Attack",
+      "rarity": "Uncommon",
+      "effects": [
+        { "type": "Damage", "value": 10 }
+      ]
+    },
+    {
+      "id": "greater_defend",
+      "nameKey": "card.greater_defend.name",
+      "descriptionKey": "card.greater_defend.desc",
+      "cost": 2,
+      "type": "Skill",
+      "rarity": "Uncommon",
+      "effects": [
+        { "type": "Block", "value": 12 }
+      ]
+    },
+    {
+      "id": "healing_potion",
+      "nameKey": "card.healing_potion.name",
+      "descriptionKey": "card.healing_potion.desc",
+      "cost": 1,
+      "type": "Skill",
+      "rarity": "Uncommon",
+      "effects": [
+        { "type": "Heal", "value": 6 }
+      ]
+    },
+    {
+      "id": "heavy_strike",
+      "nameKey": "card.heavy_strike.name",
+      "descriptionKey": "card.heavy_strike.desc",
+      "cost": 2,
+      "type": "Attack",
+      "rarity": "Uncommon",
+      "effects": [
+        { "type": "Damage", "value": 12 }
+      ]
+    },
+    {
+      "id": "armor_break",
+      "nameKey": "card.armor_break.name",
+      "descriptionKey": "card.armor_break.desc",
+      "cost": 1,
+      "type": "Attack",
+      "rarity": "Uncommon",
+      "effects": [
+        { "type": "DestroyArmor", "value": 8 }
+      ]
+    },
+    {
+      "id": "life_drain",
+      "nameKey": "card.life_drain.name",
+      "descriptionKey": "card.life_drain.desc",
+      "cost": 2,
+      "type": "Attack",
+      "rarity": "Uncommon",
+      "effects": [
+        { "type": "Damage", "value": 6 },
+        { "type": "Heal", "value": 3 }
+      ]
+    },
+    {
+      "id": "inferno",
+      "nameKey": "card.inferno.name",
+      "descriptionKey": "card.inferno.desc",
+      "cost": 3,
+      "type": "Attack",
+      "rarity": "Rare",
+      "effects": [
+        { "type": "Damage", "value": 15 },
+        { "type": "DestroyArmor", "value": 5 }
+      ]
+    },
+    {
+      "id": "fortress",
+      "nameKey": "card.fortress.name",
+      "descriptionKey": "card.fortress.desc",
+      "cost": 2,
+      "type": "Skill",
+      "rarity": "Rare",
+      "effects": [
+        { "type": "Block", "value": 15 }
+      ]
+    },
+    {
+      "id": "restoration",
+      "nameKey": "card.restoration.name",
+      "descriptionKey": "card.restoration.desc",
+      "cost": 2,
+      "type": "Skill",
+      "rarity": "Rare",
+      "effects": [
+        { "type": "Heal", "value": 10 }
+      ]
+    },
+    {
+      "id": "annihilation",
+      "nameKey": "card.annihilation.name",
+      "descriptionKey": "card.annihilation.desc",
+      "cost": 3,
+      "type": "Attack",
+      "rarity": "Legendary",
+      "effects": [
+        { "type": "Damage", "value": 20 },
+        { "type": "DestroyArmor", "value": 10 }
+      ]
+    }
+  ]
+}
