@@ -14,6 +14,7 @@ public class MainMenuScreen : IScreen
     private readonly ILocalizationService _localization;
     private readonly CardSystem _cardSystem;
     private readonly CombatSystem _combatSystem;
+    private readonly RunManager _runManager;
     private readonly List<EnemyTemplate> _enemyTemplates;
 
     private SpriteFont? _font;
@@ -22,12 +23,13 @@ public class MainMenuScreen : IScreen
     private readonly List<MenuButton> _buttons = new();
     private InputState _previousInput;
 
-    public MainMenuScreen(ScreenManager screenManager, ILocalizationService localization, CardSystem cardSystem, CombatSystem combatSystem, List<EnemyTemplate> enemyTemplates)
+    public MainMenuScreen(ScreenManager screenManager, ILocalizationService localization, CardSystem cardSystem, CombatSystem combatSystem, RunManager runManager, List<EnemyTemplate> enemyTemplates)
     {
         _screenManager = screenManager;
         _localization = localization;
         _cardSystem = cardSystem;
         _combatSystem = combatSystem;
+        _runManager = runManager;
         _enemyTemplates = enemyTemplates;
     }
 
@@ -89,6 +91,15 @@ public class MainMenuScreen : IScreen
         );
         spriteBatch.DrawString(_font, titleText, titlePos, Color.Gold, 0f, Vector2.Zero, 1.5f, SpriteEffects.None, 0f);
 
+        // Run status indicator
+        if (_runManager.State.IsActive)
+        {
+            var statusText = string.Format(_localization.Get("ui.main_menu.run_status"), _runManager.State.CurrentFloor);
+            var statusSize = _font.MeasureString(statusText);
+            var statusPos = new Vector2((_graphics.Viewport.Width - statusSize.X) / 2, titlePos.Y + 60);
+            spriteBatch.DrawString(_font, statusText, statusPos, Color.LightGreen);
+        }
+
         // Buttons
         foreach (var btn in _buttons)
         {
@@ -110,21 +121,41 @@ public class MainMenuScreen : IScreen
     {
         if (_graphics == null) return;
 
-        var labels = new[]
-        {
-            _localization.Get("ui.main_menu.play"),
-            _localization.Get("ui.main_menu.deck"),
-            _localization.Get("ui.main_menu.settings"),
-            _localization.Get("ui.main_menu.quit"),
-        };
+        bool hasActiveRun = _runManager.State.IsActive;
 
-        var actions = new Action[]
+        var labels = new List<string>();
+        var actions = new List<Action>();
+
+        if (hasActiveRun)
         {
-            () => _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _enemyTemplates)),
-            () => { },
-            () => { },
-            () => Environment.Exit(0),
-        };
+            labels.Add(_localization.Get("ui.main_menu.continue_run"));
+            actions.Add(() => _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates)));
+
+            labels.Add(_localization.Get("ui.main_menu.new_run"));
+            actions.Add(() =>
+            {
+                _runManager.StartRun();
+                _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates));
+            });
+        }
+        else
+        {
+            labels.Add(_localization.Get("ui.main_menu.start_run"));
+            actions.Add(() =>
+            {
+                _runManager.StartRun();
+                _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates));
+            });
+        }
+
+        labels.Add(_localization.Get("ui.main_menu.deck"));
+        actions.Add(() => _screenManager.ChangeScreen(new DeckScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates)));
+
+        labels.Add(_localization.Get("ui.main_menu.settings"));
+        actions.Add(() => _screenManager.ChangeScreen(new SettingsScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates)));
+
+        labels.Add(_localization.Get("ui.main_menu.quit"));
+        actions.Add(() => Environment.Exit(0));
 
         int btnWidth = 300;
         int btnHeight = 55;
@@ -133,7 +164,7 @@ public class MainMenuScreen : IScreen
         int centerX = _graphics.Viewport.Width / 2;
 
         _buttons.Clear();
-        for (int i = 0; i < labels.Length; i++)
+        for (int i = 0; i < labels.Count; i++)
         {
             var rect = new Rectangle(centerX - btnWidth / 2, startY + i * (btnHeight + spacing), btnWidth, btnHeight);
             _buttons.Add(new MenuButton(labels[i], rect, actions[i]));

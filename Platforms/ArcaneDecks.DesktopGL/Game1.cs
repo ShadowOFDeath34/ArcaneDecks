@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -17,8 +19,11 @@ public class Game1 : Game
     private JsonLocalizationService _localization = null!;
     private CardSystem _cardSystem = null!;
     private CombatSystem _combatSystem = null!;
+    private RunManager _runManager = null!;
     private ScreenManager _screenManager = null!;
     private GameDataLoader _dataLoader = null!;
+    private HttpAuthService _authService = null!;
+    private HttpBackendService _backendService = null!;
 
     private MouseState _previousMouse;
     private KeyboardState _previousKeyboard;
@@ -46,6 +51,7 @@ public class Game1 : Game
 
         _cardSystem = new CardSystem();
         _combatSystem = new CombatSystem();
+        _runManager = new RunManager(_cardSystem);
 
         _dataLoader = new GameDataLoader(Path.Combine(AppContext.BaseDirectory, "Data"));
         foreach (var card in _dataLoader.LoadCards())
@@ -53,8 +59,36 @@ public class Game1 : Game
 
         var enemyTemplates = _dataLoader.LoadEnemies();
 
-        _screenManager = new ScreenManager(GraphicsDevice, Content);
-        _screenManager.ChangeScreen(new MainMenuScreen(_screenManager, _localization, _cardSystem, _combatSystem, enemyTemplates));
+        var apiBaseUrl = Environment.GetEnvironmentVariable("ARCANE_API_URL") ?? "http://localhost:3000";
+        var httpClient = new HttpClient();
+        var storagePath = Path.Combine(AppContext.BaseDirectory, "Save");
+
+        _authService = new HttpAuthService(httpClient, apiBaseUrl);
+        _authService.EnsureDeviceId(storagePath);
+        _authService.LoadLocalCredentials(storagePath);
+
+        _backendService = new HttpBackendService(httpClient, _authService, apiBaseUrl);
+
+        _screenManager = new ScreenManager(GraphicsDevice, Content)
+        {
+            AuthService = _authService,
+            BackendService = _backendService
+        };
+
+        _ = Task.Run(async () =>
+        {
+            if (!_authService.IsAuthenticated)
+                await _authService.AuthenticateAsync();
+            _authService.SaveLocalCredentials(storagePath);
+
+            var cloudState = await _backendService.LoadProgressAsync();
+            if (cloudState != null)
+            {
+                _runManager.RestoreState(cloudState);
+            }
+        });
+
+        _screenManager.ChangeScreen(new MainMenuScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, enemyTemplates));
     }
 
 

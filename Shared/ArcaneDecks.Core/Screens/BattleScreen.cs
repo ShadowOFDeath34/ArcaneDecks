@@ -15,6 +15,7 @@ public class BattleScreen : IScreen
     private readonly ILocalizationService _localization;
     private readonly CardSystem _cardSystem;
     private readonly CombatSystem _combatSystem;
+    private readonly RunManager _runManager;
     private readonly List<EnemyTemplate> _enemyTemplates;
 
     private SpriteFont? _font;
@@ -25,6 +26,7 @@ public class BattleScreen : IScreen
     private CombatEntity? _player;
     private CombatEntity? _enemy;
     private readonly List<CardDefinition> _hand = new();
+    private readonly List<string> _playedCardIds = new();
     private bool _combatOver;
     private string _resultText = "";
 
@@ -33,12 +35,13 @@ public class BattleScreen : IScreen
     private int _hoveredCardIndex = -1;
     private bool _endTurnHovered;
 
-    public BattleScreen(ScreenManager screenManager, ILocalizationService localization, CardSystem cardSystem, CombatSystem combatSystem, List<EnemyTemplate> enemyTemplates)
+    public BattleScreen(ScreenManager screenManager, ILocalizationService localization, CardSystem cardSystem, CombatSystem combatSystem, RunManager runManager, List<EnemyTemplate> enemyTemplates)
     {
         _screenManager = screenManager;
         _localization = localization;
         _cardSystem = cardSystem;
         _combatSystem = combatSystem;
+        _runManager = runManager;
         _enemyTemplates = enemyTemplates;
     }
 
@@ -54,18 +57,20 @@ public class BattleScreen : IScreen
         _combatOver = false;
         _resultText = "";
         _hoveredCardIndex = -1;
+        _playedCardIds.Clear();
 
+        // Build player from run state
         _player = new CombatEntity
         {
             NameKey = "entity.player.name",
-            MaxHealth = 50,
-            CurrentHealth = 50,
+            MaxHealth = _runManager.State.PlayerMaxHealth,
+            CurrentHealth = _runManager.State.PlayerCurrentHealth,
             IsPlayer = true,
         };
 
-        var template = _enemyTemplates.Count > 0
-            ? _enemyTemplates[new Random().Next(_enemyTemplates.Count)]
-            : new EnemyTemplate { Id = "goblin_grunt", NameKey = "entity.goblin_grunt.name", MaxHealth = 30, Damage = 7, Armor = 0 };
+        // Pick enemy based on floor type
+        var floorType = _runManager.GetCurrentFloorType();
+        var template = PickEnemyTemplate(floorType);
 
         _enemy = new CombatEntity
         {
@@ -80,14 +85,10 @@ public class BattleScreen : IScreen
         _combatSystem.OnCombatEnded += OnCombatEnded;
         _combatSystem.OnEntityDied += OnEntityDied;
 
+        // Draw hand from run deck
         _hand.Clear();
-        var random = new Random();
-        var allCards = _cardSystem.GetAllCards().ToList();
-        for (int i = 0; i < 5 && allCards.Count > 0; i++)
-        {
-            var card = allCards[random.Next(allCards.Count)];
-            _hand.Add(card);
-        }
+        var drawn = _runManager.DrawCards(5);
+        _hand.AddRange(drawn);
 
         LayoutCards();
         _endTurnRect = new Rectangle(graphicsDevice.Viewport.Width - 170, graphicsDevice.Viewport.Height - 120, 140, 50);
@@ -114,7 +115,7 @@ public class BattleScreen : IScreen
         {
             if (input.MouseLeftReleased && !_previousInput.MouseLeftPressed)
             {
-                _screenManager.ChangeScreen(new MainMenuScreen(_screenManager, _localization, _cardSystem, _combatSystem, _enemyTemplates));
+                HandleCombatEndTransition();
             }
             _previousInput = input;
             return;
@@ -132,6 +133,7 @@ public class BattleScreen : IScreen
                     var target = _combatSystem.GetAliveEnemies().FirstOrDefault();
                     if (target != null && _combatSystem.PlayCard(card, target))
                     {
+                        _playedCardIds.Add(card.Id);
                         _hand.RemoveAt(i);
                         _cardRects.RemoveAt(i);
                         LayoutCards();
@@ -159,13 +161,19 @@ public class BattleScreen : IScreen
         // Background
         spriteBatch.Draw(_pixel, _graphics.Viewport.Bounds, new Color(35, 50, 35));
 
+        // Floor indicator
+        var floorText = $"Floor {_runManager.State.CurrentFloor} / {_runManager.State.FloorPlan.Count}";
+        var floorSize = _font.MeasureString(floorText);
+        var floorPos = new Vector2((_graphics.Viewport.Width - floorSize.X) / 2, 6);
+        spriteBatch.DrawString(_font, floorText, floorPos, Color.LightGray);
+
         // Player panel (top left)
-        DrawEntityPanel(spriteBatch, _player, 20, 20);
+        DrawEntityPanel(spriteBatch, _player, 20, 28);
 
         // Enemy panel (top right)
         if (_enemy != null && !_enemy.IsDead)
         {
-            DrawEntityPanel(spriteBatch, _enemy, _graphics.Viewport.Width - 220, 20);
+            DrawEntityPanel(spriteBatch, _enemy, _graphics.Viewport.Width - 220, 28);
         }
 
         // Turn indicator
@@ -173,8 +181,16 @@ public class BattleScreen : IScreen
             ? _localization.Get("ui.combat.player_turn")
             : _localization.Get("ui.combat.enemy_turn");
         var turnSize = _font.MeasureString(turnText);
-        var turnPos = new Vector2((_graphics.Viewport.Width - turnSize.X) / 2, 30);
+        var turnPos = new Vector2((_graphics.Viewport.Width - turnSize.X) / 2, 38);
         spriteBatch.DrawString(_font, turnText, turnPos, _combatSystem.IsPlayerTurn ? Color.LightGreen : Color.IndianRed);
+
+        // Gold display
+        var goldText = $"Gold: {_runManager.State.Gold}";
+        spriteBatch.DrawString(_font, goldText, new Vector2(20, 8), Color.Gold);
+
+        // Deck info
+        var deckText = $"Deck: {_runManager.State.DrawPile.Count} / {_runManager.State.DeckCardIds.Count}";
+        spriteBatch.DrawString(_font, deckText, new Vector2(_graphics.Viewport.Width - 200, 8), new Color(160, 160, 200));
 
         // Cards
         for (int i = 0; i < _hand.Count && i < _cardRects.Count; i++)
@@ -299,9 +315,29 @@ public class BattleScreen : IScreen
         }
     }
 
-    private static int GetEffectValue(CardDefinition card, EffectType type)
+    private EnemyTemplate PickEnemyTemplate(FloorType floorType)
     {
-        return card.Effects.FirstOrDefault(e => e.Type == type)?.Value ?? 0;
+        var random = new Random();
+        if (floorType == FloorType.Boss)
+        {
+            var bosses = _enemyTemplates.Where(e => e.IsBoss).ToList();
+            if (bosses.Count > 0) return bosses[random.Next(bosses.Count)];
+        }
+        else
+        {
+            var regular = _enemyTemplates.Where(e => !e.IsBoss).ToList();
+            if (regular.Count > 0) return regular[random.Next(regular.Count)];
+        }
+
+        return new EnemyTemplate
+        {
+            Id = "goblin_grunt",
+            NameKey = "entity.goblin_grunt.name",
+            MaxHealth = 30,
+            Damage = 7,
+            Armor = 0,
+            IsBoss = false,
+        };
     }
 
     private void OnCombatEnded()
@@ -321,7 +357,65 @@ public class BattleScreen : IScreen
     {
         if (_combatSystem.IsCombatOver())
         {
-            _combatSystem.EndPlayerTurn(); // triggers OnCombatEnded via ProcessEnemyTurn
+            _combatSystem.EndPlayerTurn();
+        }
+    }
+
+    private void HandleCombatEndTransition()
+    {
+        if (_player == null) return;
+
+        // Sync player health back to run state
+        _runManager.State.PlayerCurrentHealth = _player.CurrentHealth;
+
+        // Discard played cards and any remaining hand cards
+        var discardIds = new List<string>(_playedCardIds);
+        foreach (var card in _hand)
+        {
+            if (!discardIds.Contains(card.Id))
+                discardIds.Add(card.Id);
+        }
+        _runManager.DiscardHand(discardIds);
+
+        if (_player.IsDead)
+        {
+            // Run defeated
+            _runManager.EndRun(false);
+            _screenManager.ChangeScreen(new GameOverScreen(
+                _screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates,
+                victory: false, score: _runManager.State.Score, gold: _runManager.State.Gold, floor: _runManager.State.CurrentFloor));
+            return;
+        }
+
+        // Victory
+        var goldReward = _combatSystem.GetRewardGold();
+        _runManager.State.Gold += goldReward;
+
+        var floorType = _runManager.GetCurrentFloorType();
+        if (floorType == FloorType.Boss || _runManager.IsFinalFloor())
+        {
+            _runManager.EndRun(true);
+            _screenManager.ChangeScreen(new GameOverScreen(
+                _screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates,
+                victory: true, score: _runManager.State.Score, gold: _runManager.State.Gold, floor: _runManager.State.CurrentFloor));
+            return;
+        }
+
+        // Advance to next floor
+        _runManager.AdvanceFloor();
+        var nextType = _runManager.GetCurrentFloorType();
+
+        if (nextType == FloorType.Combat || nextType == FloorType.Boss)
+        {
+            _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates));
+        }
+        else if (nextType == FloorType.Shop)
+        {
+            _screenManager.ChangeScreen(new ShopScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates));
+        }
+        else
+        {
+            _screenManager.ChangeScreen(new EventScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates));
         }
     }
 }
