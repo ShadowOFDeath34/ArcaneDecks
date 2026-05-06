@@ -72,7 +72,7 @@ jobs:
           $sdkmanager = "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat"
           if (-not (Test-Path $sdkmanager)) { $sdkmanager = "$env:ANDROID_HOME\cmdline-tools\12.0\bin\sdkmanager.bat" }
           if (-not (Test-Path $sdkmanager)) { $sdkmanager = "sdkmanager" }
-          echo "y" | & $sdkmanager --licenses || true
+          Write-Output "y" | & $sdkmanager --licenses
         shell: powershell
 
       - name: Install Android platforms
@@ -99,7 +99,7 @@ jobs:
           path: ${{ github.workspace }}/publish/android
 
   build-ios:
-    runs-on: macos-15
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
 
