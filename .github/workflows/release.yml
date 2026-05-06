@@ -1,0 +1,168 @@
+name: Release Alpha Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.1.0-alpha)'
+        required: true
+        default: 'v0.1.0-alpha'
+
+jobs:
+  build-desktopgl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj
+
+      - name: Build DesktopGL
+        run: dotnet build Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj --no-restore --configuration Release
+
+      - name: Publish DesktopGL (self-contained)
+        run: >
+          dotnet publish Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj
+          --no-build --configuration Release
+          --runtime win-x64 --self-contained true
+          --output ${{ github.workspace }}/publish/desktopgl
+
+      - name: Upload DesktopGL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcaneDecks-DesktopGL-Win64
+          path: ${{ github.workspace }}/publish/desktopgl
+
+  build-android:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android licenses
+        run: yes | sdkmanager --licenses || true
+        shell: bash
+
+      - name: Install Android platforms
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        shell: bash
+
+      - name: Restore dependencies
+        run: dotnet restore Platforms/ArcaneDecks.Android/ArcaneDecks.Android.csproj
+
+      - name: Build Android
+        run: dotnet build Platforms/ArcaneDecks.Android/ArcaneDecks.Android.csproj --no-restore --configuration Release
+
+      - name: Publish Android
+        run: >
+          dotnet publish Platforms/ArcaneDecks.Android/ArcaneDecks.Android.csproj
+          --configuration Release
+          --output ${{ github.workspace }}/publish/android
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcaneDecks-Android
+          path: ${{ github.workspace }}/publish/android
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Install iOS workload
+        run: dotnet workload install ios
+
+      - name: Restore dependencies
+        run: dotnet restore Platforms/ArcaneDecks.iOS/ArcaneDecks.iOS.csproj
+
+      - name: Build iOS
+        run: dotnet build Platforms/ArcaneDecks.iOS/ArcaneDecks.iOS.csproj --no-restore --configuration Release
+
+      - name: Publish iOS (simulator)
+        run: >
+          dotnet publish Platforms/ArcaneDecks.iOS/ArcaneDecks.iOS.csproj
+          --no-build --configuration Release
+          --output ${{ github.workspace }}/publish/ios
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcaneDecks-iOS
+          path: ${{ github.workspace }}/publish/ios
+
+  release:
+    needs: [build-desktopgl, build-android, build-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create release archives
+        run: |
+          mkdir releases
+          cd artifacts
+          for dir in */; do
+            base=$(basename "$dir")
+            zip -r "../releases/${base}.zip" "$dir"
+          done
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ArcaneDecks Alpha ${{ github.event.inputs.tag || github.ref_name }}
+          body: |
+            ArcaneDecks: Goblin Siege — Alpha Release
+
+            **Builds included:**
+            - DesktopGL (Windows x64, self-contained)
+            - Android (APK / AAB)
+            - iOS (simulator build — physical device IPA requires Apple Developer certificate)
+
+            **How to run DesktopGL:**
+            1. Download `ArcaneDecks-DesktopGL-Win64.zip`
+            2. Extract and run `ArcaneDecks.DesktopGL.exe`
+
+            **How to install Android:**
+            1. Download `ArcaneDecks-Android.zip`
+            2. Install the `.apk` on your device or use the `.aab` for Google Play upload
+          files: releases/*.zip
+          draft: false
+          prerelease: true
