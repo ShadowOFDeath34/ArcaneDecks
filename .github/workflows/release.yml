@@ -22,6 +22,12 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
+      - name: Install Microsoft Core Fonts (Arial)
+        run: |
+          echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+          sudo apt-get update
+          sudo apt-get install -y ttf-mscorefonts-installer
+
       - name: Restore dependencies
         run: dotnet restore Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj
 
@@ -64,11 +70,11 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Accept Android licenses
-        run: yes | sdkmanager --licenses || true
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
         shell: bash
 
       - name: Install Android platforms
-        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
         shell: bash
 
       - name: Restore dependencies
@@ -90,9 +96,12 @@ jobs:
           path: ${{ github.workspace }}/publish/android
 
   build-ios:
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
