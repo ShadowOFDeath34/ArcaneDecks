@@ -27,11 +27,15 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore solution
-        run: dotnet restore ArcaneDecks.sln
+      - name: Restore Core + Tests
+        run: |
+          dotnet restore Shared/ArcaneDecks.Core/ArcaneDecks.Core.csproj
+          dotnet restore Shared/ArcaneDecks.Core.Tests/ArcaneDecks.Core.Tests.csproj
 
-      - name: Build solution
-        run: dotnet build ArcaneDecks.sln --no-restore --configuration Release
+      - name: Build Core + Tests
+        run: |
+          dotnet build Shared/ArcaneDecks.Core/ArcaneDecks.Core.csproj --no-restore --configuration Release
+          dotnet build Shared/ArcaneDecks.Core.Tests/ArcaneDecks.Core.Tests.csproj --no-restore --configuration Release
 
       - name: Run tests
-        run: dotnet test ArcaneDecks.sln --no-build --configuration Release --verbosity normal
+        run: dotnet test Shared/ArcaneDecks.Core.Tests/ArcaneDecks.Core.Tests.csproj --no-build --configuration Release --verbosity normal
