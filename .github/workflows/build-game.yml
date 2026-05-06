@@ -40,7 +40,7 @@ jobs:
         run: dotnet build Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj --no-restore --configuration Release
 
       - name: Publish DesktopGL
-        run: dotnet publish Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj --no-build --configuration Release --output ${{ github.workspace }}/publish/desktopgl
+        run: dotnet publish Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj --configuration Release --output ${{ github.workspace }}/publish/desktopgl
 
       - name: Upload DesktopGL artifact
         uses: actions/upload-artifact@v4
@@ -67,16 +67,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Accept Android licenses
-        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        shell: bash
+        run: |
+          $sdkmanager = "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat"
+          if (-not (Test-Path $sdkmanager)) { $sdkmanager = "$env:ANDROID_HOME\cmdline-tools\12.0\bin\sdkmanager.bat" }
+          if (-not (Test-Path $sdkmanager)) { $sdkmanager = "sdkmanager" }
+          echo "y" | & $sdkmanager --licenses || true
+        shell: powershell
 
       - name: Install Android platforms
-        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
-        shell: bash
+        run: |
+          $sdkmanager = "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat"
+          if (-not (Test-Path $sdkmanager)) { $sdkmanager = "$env:ANDROID_HOME\cmdline-tools\12.0\bin\sdkmanager.bat" }
+          if (-not (Test-Path $sdkmanager)) { $sdkmanager = "sdkmanager" }
+          & $sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        shell: powershell
 
       - name: Restore dependencies
         run: dotnet restore Platforms/ArcaneDecks.Android/ArcaneDecks.Android.csproj
@@ -98,13 +103,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode 16
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+
+      - name: Pin .NET SDK version
+        run: |
+          echo '{"sdk":{"version":"9.0.100","rollForward":"latestFeature"}}' > global.json
 
       - name: Install iOS workload
         run: dotnet workload install ios
