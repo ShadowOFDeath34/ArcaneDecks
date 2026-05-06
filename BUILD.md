@@ -70,3 +70,32 @@ Tum ortam degiskenleri `backend/.env.example` dosyasinda sablon olarak mevcuttur
 - `REVENUECAT_API_KEY` — RevenueCat REST API v2 anahtari
 - `APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD` — iOS imzalama sertifikasi
 - `APPLE_PROVISION_PROFILE` — iOS provizyon profili
+
+## Release Olusturma (Alpha Build)
+
+GitHub Actions uzerinden otomatik release uretimi `.github/workflows/release.yml` ile yapilir.
+
+### Yontem 1: Git Tag ile (Onerilen)
+
+```bash
+git tag -a v0.1.0-alpha -m "ArcaneDecks Alpha 0.1.0"
+git push origin v0.1.0-alpha
+```
+
+Tag push edildiginde CI otomatik calisir:
+1. `build-desktopgl` — Windows x64 self-contained EXE
+2. `build-android` — APK / AAB
+3. `build-ios` — iOS simulator build (fiziksel cihaz IPA icin Apple Developer Certificate gerekir)
+4. `release` — Tum artifact'leri ZIP'leyip GitHub Release olusturur (prerelease)
+
+### Yontem 2: Manuel Trigger
+
+GitHub repo sayfasinda **Actions > Release Alpha Build > Run workflow** butonuyla istenen tag adi girilerek calistirilabilir.
+
+### CI Release Ciktilari
+
+| Platform | Cikti | Not |
+|---|---|---|
+| DesktopGL | `ArcaneDecks-DesktopGL-Win64.zip` | `ArcaneDecks.DesktopGL.exe` icerir; .NET kurulumu gerekmez (self-contained) |
+| Android | `ArcaneDecks-Android.zip` | `.apk` ve `.aab` dosyalarini icerir |
+| iOS | `ArcaneDecks-iOS.zip` | Simulator build; fiziksel cihaz IPA'si icin CI'da Apple Developer sertifikasi eklenmeli |
