@@ -175,16 +175,14 @@ public class MainMenuScreen : IScreen
             });
         }
 
-        // Seasonal event run button
+        // Seasonal events button
         if (_activeEvents.Count > 0)
         {
-            var ev = _activeEvents[0];
-            labels.Add($"{ev.Name}");
+            labels.Add(_localization.Get("ui.main_menu.seasonal"));
             actions.Add(() =>
             {
-                _screenManager.AnalyticsService?.TrackEvent("run_started", new Dictionary<string, object> { ["type"] = "seasonal", ["event_key"] = ev.EventKey });
-                _runManager.StartSeasonalRun(ev.Id, ev.EventKey, ev.Rules);
-                _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates));
+                _screenManager.AnalyticsService?.TrackEvent("seasonal_events_opened", new Dictionary<string, object> { ["count"] = _activeEvents.Count });
+                _screenManager.ChangeScreen(new SeasonalEventScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates, _activeEvents));
             });
         }
 
