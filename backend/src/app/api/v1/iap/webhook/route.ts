@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { captureEvent } from "@/lib/posthog";
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -193,6 +194,15 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    const receiptPlayerId = playerId || "unknown";
+    captureEvent(receiptPlayerId, "iap_purchase", {
+      product_id: productId,
+      transaction_id: transactionId,
+      platform: rawStore,
+      environment: rawEnvironment,
+      validated: !!RC_API_KEY,
+    });
 
     return NextResponse.json({ success: true, validated: !!RC_API_KEY });
   } catch (err) {

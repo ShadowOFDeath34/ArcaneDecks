@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SignJWT } from "jose";
 import { createClient } from "@supabase/supabase-js";
+import { captureEvent } from "@/lib/posthog";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 const supabase = createClient(
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     let playerId: string;
+    const isNew = !existing?.id;
 
     if (existing?.id) {
       playerId = existing.id;
@@ -43,6 +45,11 @@ export async function POST(req: NextRequest) {
       }
       playerId = data.id;
     }
+
+    captureEvent(playerId, isNew ? "player_registered" : "player_login", {
+      device_id: deviceId,
+      platform: "game_client",
+    });
 
     const token = await new SignJWT({ sub: playerId, did: deviceId })
       .setProtectedHeader({ alg: "HS256" })
