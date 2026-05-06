@@ -41,6 +41,7 @@ jobs:
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.local
           echo "SENTRY_DSN=${{ secrets.SENTRY_DSN || '' }}" >> .env.local
           echo "POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY || '' }}" >> .env.local
+          echo "POSTHOG_HOST=${{ secrets.POSTHOG_HOST || 'https://eu.i.posthog.com' }}" >> .env.local
           echo "REVENUECAT_API_KEY=${{ secrets.REVENUECAT_API_KEY || '' }}" >> .env.local
 
       - name: Run Playwright E2E tests

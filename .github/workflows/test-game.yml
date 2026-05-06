@@ -27,11 +27,11 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore Core + DesktopGL
-        run: dotnet restore Shared/ArcaneDecks.Core/ArcaneDecks.Core.csproj Shared/ArcaneDecks.Core.Tests/ArcaneDecks.Core.Tests.csproj Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj
+      - name: Restore solution
+        run: dotnet restore ArcaneDecks.sln
 
-      - name: Build Core + DesktopGL
-        run: dotnet build Shared/ArcaneDecks.Core/ArcaneDecks.Core.csproj Shared/ArcaneDecks.Core.Tests/ArcaneDecks.Core.Tests.csproj Platforms/ArcaneDecks.DesktopGL/ArcaneDecks.DesktopGL.csproj --no-restore --configuration Release
+      - name: Build solution
+        run: dotnet build ArcaneDecks.sln --no-restore --configuration Release
 
       - name: Run tests
-        run: dotnet test Shared/ArcaneDecks.Core.Tests/ArcaneDecks.Core.Tests.csproj --no-build --configuration Release --verbosity normal
+        run: dotnet test ArcaneDecks.sln --no-build --configuration Release --verbosity normal
