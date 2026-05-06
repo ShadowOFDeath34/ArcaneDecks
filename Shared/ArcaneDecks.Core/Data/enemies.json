@@ -3,46 +3,46 @@
     {
       "id": "goblin_grunt",
       "nameKey": "entity.goblin_grunt.name",
-      "maxHealth": 30,
-      "damage": 7,
+      "maxHealth": 22,
+      "damage": 6,
       "armor": 0
     },
     {
       "id": "goblin_archer",
       "nameKey": "entity.goblin_archer.name",
-      "maxHealth": 25,
+      "maxHealth": 18,
       "damage": 5,
       "armor": 0
     },
     {
       "id": "goblin_shaman",
       "nameKey": "entity.goblin_shaman.name",
-      "maxHealth": 35,
-      "damage": 4,
+      "maxHealth": 24,
+      "damage": 5,
       "armor": 0
     },
     {
       "id": "goblin_berserker",
       "nameKey": "entity.goblin_berserker.name",
-      "maxHealth": 40,
-      "damage": 9,
+      "maxHealth": 30,
+      "damage": 8,
       "armor": 0
     },
     {
       "id": "goblin_knight",
       "nameKey": "entity.goblin_knight.name",
-      "maxHealth": 50,
+      "maxHealth": 36,
       "damage": 6,
-      "armor": 5
+      "armor": 4
     }
   ],
   "bosses": [
     {
       "id": "goblin_warlord",
       "nameKey": "entity.goblin_warlord.name",
-      "maxHealth": 80,
-      "damage": 10,
-      "armor": 5
+      "maxHealth": 55,
+      "damage": 8,
+      "armor": 3
     }
   ]
 }

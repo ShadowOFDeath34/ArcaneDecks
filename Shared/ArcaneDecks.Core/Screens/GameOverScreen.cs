@@ -27,6 +27,7 @@ public class GameOverScreen : IScreen
     private readonly int _score;
     private readonly int _gold;
     private readonly int _floor;
+    private readonly int _teethEarned;
 
     private Rectangle _mainMenuRect;
     private bool _mainMenuHovered;
@@ -43,6 +44,7 @@ public class GameOverScreen : IScreen
         _score = score;
         _gold = gold;
         _floor = floor;
+        _teethEarned = Math.Max(0, floor + score / 200);
     }
 
     public void Initialize() { }
@@ -72,17 +74,68 @@ public class GameOverScreen : IScreen
 
     public void Show()
     {
-        if (_screenManager.BackendService == null || _scoreSubmitted) return;
+        if (_scoreSubmitted) return;
         _scoreSubmitted = true;
+
+        _screenManager.AnalyticsService?.TrackEvent("screen_view", new Dictionary<string, object> { ["screen"] = "game_over" });
+        _screenManager.AnalyticsService?.TrackEvent("run_completed", new Dictionary<string, object>
+        {
+            ["victory"] = _victory,
+            ["floor"] = _floor,
+            ["score"] = _score,
+            ["gold"] = _gold,
+            ["teeth_earned"] = _teethEarned
+        });
+
+        var meta = _screenManager.MetaProgressionSystem;
+        if (meta != null)
+        {
+            meta.Data.GoblinTeeth += _teethEarned;
+        }
+
         _ = Task.Run(async () =>
         {
-            await _screenManager.BackendService.SubmitScoreAsync(
-                "global",
-                _screenManager.AuthService?.PlayerId ?? "anonymous",
-                _score,
-                _floor);
-            await _screenManager.BackendService.SaveProgressAsync(_runManager.State);
+            if (_screenManager.BackendService != null)
+            {
+                await _screenManager.BackendService.SubmitScoreAsync(
+                    "global",
+                    _screenManager.AuthService?.PlayerId ?? "anonymous",
+                    _score,
+                    _floor);
+                await _screenManager.BackendService.SaveProgressAsync(_runManager.State);
+                if (meta != null)
+                {
+                    await _screenManager.BackendService.SaveMetaProgressAsync(meta.ToDto());
+                }
+
+                // Submit seasonal event score if this was an event run
+                var eventId = _runManager.State.SeasonalEventId;
+                if (!string.IsNullOrEmpty(eventId))
+                {
+                    await _screenManager.BackendService.SubmitSeasonalEventScoreAsync(eventId, _score, _floor);
+                }
+            }
         });
+
+        var steam = _screenManager.SteamService;
+        if (steam != null && steam.IsInitialized)
+        {
+            if (_victory)
+            {
+                if (_floor >= 5)
+                    steam.SetAchievement("ACH_FLOOR_5");
+                if (_floor >= 10)
+                    steam.SetAchievement("ACH_FLOOR_10");
+            }
+
+            if (_score > steam.GetStat("stat_highest_score"))
+            {
+                steam.SetStat("stat_highest_score", _score);
+            }
+
+            steam.UploadLeaderboardScore("leaderboard_global", _score);
+            steam.StoreStats();
+        }
     }
 
     public void Hide() { }
@@ -122,14 +175,16 @@ public class GameOverScreen : IScreen
         var floorText = string.Format(_localization.Get("ui.game_over.floor"), _floor);
         var goldText = string.Format(_localization.Get("ui.game_over.gold"), _gold);
         var scoreText = string.Format(_localization.Get("ui.game_over.score"), _score);
+        var teethText = string.Format(_localization.Get("ui.game_over.teeth"), _teethEarned);
 
-        var stats = new[] { floorText, goldText, scoreText };
+        var stats = new[] { floorText, goldText, scoreText, teethText };
         float startY = titlePos.Y + 100;
         for (int i = 0; i < stats.Length; i++)
         {
             var size = _font.MeasureString(stats[i]);
             var pos = new Vector2((_graphics.Viewport.Width - size.X * 1.2f) / 2, startY + i * 60);
-            spriteBatch.DrawString(_font, stats[i], pos, Color.LightGray, 0f, Vector2.Zero, 1.2f, SpriteEffects.None, 0f);
+            var color = i == 3 ? new Color(200, 180, 100) : Color.LightGray;
+            spriteBatch.DrawString(_font, stats[i], pos, color, 0f, Vector2.Zero, 1.2f, SpriteEffects.None, 0f);
         }
 
         // Main Menu button

@@ -105,7 +105,19 @@ public class BattleScreen : IScreen
         _graphics = null;
     }
 
-    public void Show() { }
+    public void Show()
+    {
+        _screenManager.AnalyticsService?.TrackEvent("screen_view", new Dictionary<string, object> { ["screen"] = "battle" });
+        if (_enemy != null)
+        {
+            _screenManager.AnalyticsService?.TrackEvent("combat_started", new Dictionary<string, object>
+            {
+                ["floor"] = _runManager.State.CurrentFloor,
+                ["enemy_id"] = _enemy.NameKey,
+                ["enemy_max_health"] = _enemy.MaxHealth
+            });
+        }
+    }
     public void Hide() { }
 
     public void Update(GameTime gameTime, InputState input)
@@ -138,6 +150,13 @@ public class BattleScreen : IScreen
                         _hand.RemoveAt(i);
                         _cardRects.RemoveAt(i);
                         LayoutCards();
+                        _screenManager.AnalyticsService?.TrackEvent("card_played", new Dictionary<string, object>
+                        {
+                            ["card_id"] = card.Id,
+                            ["card_type"] = card.Type.ToString(),
+                            ["card_cost"] = card.Cost,
+                            ["floor"] = _runManager.State.CurrentFloor
+                        });
                         break;
                     }
                 }
@@ -148,6 +167,11 @@ public class BattleScreen : IScreen
         if (_endTurnHovered && input.MouseLeftReleased && !_previousInput.MouseLeftPressed && _combatSystem.IsPlayerTurn)
         {
             _combatSystem.EndPlayerTurn();
+            _screenManager.AnalyticsService?.TrackEvent("turn_ended", new Dictionary<string, object>
+            {
+                ["floor"] = _runManager.State.CurrentFloor,
+                ["cards_remaining"] = _hand.Count
+            });
         }
 
         _previousInput = input;
@@ -193,6 +217,15 @@ public class BattleScreen : IScreen
         // Gold display
         var goldText = $"Gold: {_runManager.State.Gold}";
         spriteBatch.DrawString(_font, goldText, new Vector2(20, 8), Color.Gold);
+
+        // Seasonal event indicator
+        if (!string.IsNullOrEmpty(_runManager.State.SeasonalEventKey))
+        {
+            var eventText = _runManager.State.SeasonalEventKey;
+            var eventSize = _font.MeasureString(eventText);
+            var eventPos = new Vector2((_graphics.Viewport.Width - eventSize.X) / 2, 62);
+            spriteBatch.DrawString(_font, eventText, eventPos, new Color(255, 215, 0));
+        }
 
         // Deck info
         var deckText = $"Deck: {_runManager.State.DrawPile.Count} / {_runManager.State.DeckCardIds.Count}";
@@ -340,7 +373,7 @@ public class BattleScreen : IScreen
             Id = "goblin_grunt",
             NameKey = "entity.goblin_grunt.name",
             MaxHealth = 30,
-            Damage = 7,
+            Damage = 6,
             Armor = 0,
             IsBoss = false,
         };
@@ -349,13 +382,37 @@ public class BattleScreen : IScreen
     private void OnCombatEnded()
     {
         _combatOver = true;
-        if (_combatSystem.Player != null && !_combatSystem.Player.IsDead)
+        bool victory = _combatSystem.Player != null && !_combatSystem.Player.IsDead;
+        if (victory)
         {
             _resultText = _localization.Get("ui.combat.win");
         }
         else
         {
             _resultText = _localization.Get("ui.combat.lose");
+        }
+
+        _screenManager.AnalyticsService?.TrackEvent("combat_result", new Dictionary<string, object>
+        {
+            ["victory"] = victory,
+            ["floor"] = _runManager.State.CurrentFloor,
+            ["score"] = _runManager.State.Score,
+            ["player_health_remaining"] = _combatSystem.Player?.CurrentHealth ?? 0
+        });
+
+        var steam = _screenManager.SteamService;
+        if (steam != null && steam.IsInitialized)
+        {
+            if (victory)
+            {
+                steam.SetAchievement("ACH_FIRST_VICTORY");
+                steam.SetStat("stat_combats_won", steam.GetStat("stat_combats_won") + 1);
+            }
+            else
+            {
+                steam.SetStat("stat_combats_lost", steam.GetStat("stat_combats_lost") + 1);
+            }
+            steam.StoreStats();
         }
     }
 
@@ -393,12 +450,38 @@ public class BattleScreen : IScreen
             return;
         }
 
-        // Victory
+        // Victory: heal 5 HP and grant gold
+        _runManager.HealPlayer(5);
         var goldReward = _combatSystem.GetRewardGold();
+        if (_runManager.State.SeasonalRules.TryGetValue("goldMultiplier", out var multObj) && multObj is double mult)
+        {
+            goldReward = (int)(goldReward * mult);
+        }
         _runManager.State.Gold += goldReward;
 
-        var floorType = _runManager.GetCurrentFloorType();
-        if (floorType == FloorType.Boss || _runManager.IsFinalFloor())
+        var steam = _screenManager.SteamService;
+        if (steam != null && steam.IsInitialized)
+        {
+            steam.SetStat("stat_total_gold", steam.GetStat("stat_total_gold") + goldReward);
+
+            var floorType = _runManager.GetCurrentFloorType();
+            if (floorType == FloorType.Boss)
+            {
+                steam.SetAchievement("ACH_BOSS_SLAIN");
+                steam.SetStat("stat_bosses_slain", steam.GetStat("stat_bosses_slain") + 1);
+            }
+
+            if (_runManager.State.Gold >= 100)
+            {
+                steam.SetAchievement("ACH_GOLD_100");
+            }
+
+            steam.UploadLeaderboardScore("leaderboard_global", _runManager.State.Score);
+            steam.StoreStats();
+        }
+
+        var currentFloorType = _runManager.GetCurrentFloorType();
+        if (currentFloorType == FloorType.Boss || _runManager.IsFinalFloor())
         {
             _runManager.EndRun(true);
             _screenManager.ChangeScreen(new GameOverScreen(
@@ -409,6 +492,17 @@ public class BattleScreen : IScreen
 
         // Advance to next floor
         _runManager.AdvanceFloor();
+        if (steam != null && steam.IsInitialized)
+        {
+            steam.SetStat("stat_floors_climbed", steam.GetStat("stat_floors_climbed") + 1);
+            var currentFloor = _runManager.State.CurrentFloor;
+            if (currentFloor > steam.GetStat("stat_highest_floor"))
+            {
+                steam.SetStat("stat_highest_floor", currentFloor);
+            }
+            steam.StoreStats();
+        }
+
         var nextType = _runManager.GetCurrentFloorType();
 
         if (nextType == FloorType.Combat || nextType == FloorType.Boss)

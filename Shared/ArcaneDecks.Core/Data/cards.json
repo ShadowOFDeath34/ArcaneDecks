@@ -41,8 +41,8 @@
       "type": "Attack",
       "rarity": "Common",
       "effects": [
-        { "type": "Damage", "value": 8 },
-        { "type": "DestroyArmor", "value": 2 }
+        { "type": "Damage", "value": 9 },
+        { "type": "DestroyArmor", "value": 3 }
       ]
     },
     {
@@ -87,7 +87,7 @@
       "rarity": "Common",
       "effects": [
         { "type": "Damage", "value": 4 },
-        { "type": "DestroyArmor", "value": 5 }
+        { "type": "DestroyArmor", "value": 4 }
       ]
     },
     {
@@ -109,7 +109,7 @@
       "type": "Attack",
       "rarity": "Common",
       "effects": [
-        { "type": "Damage", "value": 4 },
+        { "type": "Damage", "value": 5 },
         { "type": "DestroyArmor", "value": 3 }
       ]
     },
@@ -121,7 +121,7 @@
       "type": "Attack",
       "rarity": "Uncommon",
       "effects": [
-        { "type": "Damage", "value": 10 }
+        { "type": "Damage", "value": 11 }
       ]
     },
     {
@@ -165,7 +165,8 @@
       "type": "Attack",
       "rarity": "Uncommon",
       "effects": [
-        { "type": "DestroyArmor", "value": 8 }
+        { "type": "Damage", "value": 2 },
+        { "type": "DestroyArmor", "value": 6 }
       ]
     },
     {
@@ -188,8 +189,8 @@
       "type": "Attack",
       "rarity": "Rare",
       "effects": [
-        { "type": "Damage", "value": 15 },
-        { "type": "DestroyArmor", "value": 5 }
+        { "type": "Damage", "value": 16 },
+        { "type": "DestroyArmor", "value": 6 }
       ]
     },
     {
@@ -222,8 +223,8 @@
       "type": "Attack",
       "rarity": "Legendary",
       "effects": [
-        { "type": "Damage", "value": 20 },
-        { "type": "DestroyArmor", "value": 10 }
+        { "type": "Damage", "value": 18 },
+        { "type": "DestroyArmor", "value": 8 }
       ]
     }
   ]

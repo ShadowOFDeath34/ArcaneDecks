@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using ArcaneDecks.Core.Systems;
 using Xunit;
@@ -38,8 +39,8 @@ public class RunManagerTests
 
         Assert.True(rm.State.IsActive);
         Assert.Equal(1, rm.State.CurrentFloor);
-        Assert.Equal(50, rm.State.PlayerMaxHealth);
-        Assert.Equal(50, rm.State.PlayerCurrentHealth);
+        Assert.Equal(55, rm.State.PlayerMaxHealth);
+        Assert.Equal(55, rm.State.PlayerCurrentHealth);
         Assert.NotEmpty(rm.State.FloorPlan);
     }
 
@@ -62,7 +63,7 @@ public class RunManagerTests
 
         var drawn = rm.DrawCards(2);
         Assert.Equal(2, drawn.Count);
-        Assert.Equal(0, rm.State.DrawPile.Count);
+        Assert.Empty(rm.State.DrawPile);
     }
 
     [Fact]
@@ -143,10 +144,10 @@ public class RunManagerTests
         rm.StartRun();
         rm.DamagePlayer(20);
         rm.HealPlayer(5);
-        Assert.Equal(35, rm.State.PlayerCurrentHealth);
+        Assert.Equal(40, rm.State.PlayerCurrentHealth);
 
         rm.HealPlayer(100);
-        Assert.Equal(50, rm.State.PlayerCurrentHealth);
+        Assert.Equal(55, rm.State.PlayerCurrentHealth);
     }
 
     [Fact]
@@ -155,7 +156,7 @@ public class RunManagerTests
         var rm = new RunManager(CreateCardSystem());
         rm.StartRun();
         rm.DamagePlayer(15);
-        Assert.Equal(35, rm.State.PlayerCurrentHealth);
+        Assert.Equal(40, rm.State.PlayerCurrentHealth);
     }
 
     [Fact]
@@ -229,5 +230,164 @@ public class RunManagerTests
         Assert.False(rm.State.IsActive);
         Assert.False(rm.State.IsVictory);
         Assert.Equal(0, rm.State.Score);
+    }
+
+    [Fact]
+    public void StartRun_WithNoCards_CreatesEmptyDeck()
+    {
+        var rm = new RunManager(new CardSystem());
+        rm.StartRun();
+
+        Assert.Empty(rm.State.DeckCardIds);
+        Assert.Empty(rm.State.DrawPile);
+    }
+
+    [Fact]
+    public void DrawCards_ReturnsEmpty_WhenBothPilesEmpty()
+    {
+        var rm = new RunManager(CreateCardSystem());
+        rm.StartRun();
+        rm.State.DrawPile.Clear();
+        rm.State.DiscardPile.Clear();
+
+        var drawn = rm.DrawCards(3);
+
+        Assert.Empty(drawn);
+    }
+
+    [Fact]
+    public void AddCardToDeck_Skips_WhenCardMissing()
+    {
+        var rm = new RunManager(CreateCardSystem());
+        rm.StartRun();
+
+        rm.AddCardToDeck("missing_card");
+
+        Assert.DoesNotContain("missing_card", rm.State.DeckCardIds);
+    }
+
+    [Fact]
+    public void AddCardToDeck_Skips_WhenAlreadyInDeck()
+    {
+        var cs = CreateCardSystem();
+        var rm = new RunManager(cs);
+        rm.StartRun();
+        var initialCount = rm.State.DeckCardIds.Count;
+
+        rm.AddCardToDeck("strike"); // already in starter deck
+
+        Assert.Equal(initialCount, rm.State.DeckCardIds.Count);
+    }
+
+    [Fact]
+    public void DiscardHand_SkipsDuplicates()
+    {
+        var rm = new RunManager(CreateCardSystem());
+        rm.StartRun();
+        var ids = rm.State.DeckCardIds.Take(1).ToList();
+
+        rm.DiscardHand(ids);
+        rm.DiscardHand(ids); // duplicate
+
+        Assert.Single(rm.State.DiscardPile);
+    }
+
+    [Fact]
+    public void HealPlayer_AtMaxHealth_DoesNotChange()
+    {
+        var rm = new RunManager(CreateCardSystem());
+        rm.StartRun();
+
+        rm.HealPlayer(10);
+
+        Assert.Equal(55, rm.State.PlayerCurrentHealth);
+    }
+
+    [Fact]
+    public void DamagePlayer_Zero_DoesNotChange()
+    {
+        var rm = new RunManager(CreateCardSystem());
+        rm.StartRun();
+
+        rm.DamagePlayer(0);
+
+        Assert.Equal(55, rm.State.PlayerCurrentHealth);
+    }
+
+    [Fact]
+    public void AdvanceFloor_AtFinalFloor_DoesNotExceed()
+    {
+        var rm = new RunManager(CreateCardSystem());
+        rm.StartRun();
+        rm.State.CurrentFloor = rm.State.FloorPlan.Count;
+
+        rm.AdvanceFloor();
+
+        Assert.Equal(rm.State.FloorPlan.Count, rm.State.CurrentFloor);
+    }
+
+    [Fact]
+    public void GetCurrentFloorType_OutOfBounds_DefaultsToCombat()
+    {
+        var rm = new RunManager(CreateCardSystem());
+        rm.StartRun();
+
+        rm.State.CurrentFloor = 0;
+        Assert.Equal(FloorType.Combat, rm.GetCurrentFloorType());
+
+        rm.State.CurrentFloor = 99;
+        Assert.Equal(FloorType.Combat, rm.GetCurrentFloorType());
+    }
+
+    [Fact]
+    public void RestoreState_CopiesAllFields()
+    {
+        var rm = new RunManager(CreateCardSystem());
+        rm.StartRun();
+        rm.State.Gold = 42;
+        rm.State.Score = 100;
+        var saved = new RunState
+        {
+            IsActive = rm.State.IsActive,
+            IsVictory = rm.State.IsVictory,
+            CurrentFloor = rm.State.CurrentFloor,
+            PlayerMaxHealth = rm.State.PlayerMaxHealth,
+            PlayerCurrentHealth = rm.State.PlayerCurrentHealth,
+            DeckCardIds = new List<string>(rm.State.DeckCardIds),
+            DrawPile = new List<string>(rm.State.DrawPile),
+            DiscardPile = new List<string>(rm.State.DiscardPile),
+            Gold = rm.State.Gold,
+            Score = rm.State.Score,
+            FloorPlan = new List<FloorType>(rm.State.FloorPlan)
+        };
+
+        var rm2 = new RunManager(new CardSystem());
+        rm2.RestoreState(saved);
+
+        Assert.Equal(rm.State.IsActive, rm2.State.IsActive);
+        Assert.Equal(rm.State.CurrentFloor, rm2.State.CurrentFloor);
+        Assert.Equal(rm.State.Gold, rm2.State.Gold);
+        Assert.Equal(rm.State.Score, rm2.State.Score);
+        Assert.Equal(rm.State.FloorPlan.Count, rm2.State.FloorPlan.Count);
+    }
+
+    [Fact]
+    public void RestoreState_Null_DoesNotCrash()
+    {
+        var rm = new RunManager(CreateCardSystem());
+        rm.StartRun();
+
+        rm.RestoreState(null!);
+
+        Assert.True(rm.State.IsActive);
+    }
+
+    [Fact]
+    public void FloorPlan_HasTenFloors()
+    {
+        var rm = new RunManager(CreateCardSystem());
+        rm.StartRun();
+
+        Assert.Equal(10, rm.State.FloorPlan.Count);
     }
 }

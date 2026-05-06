@@ -1,6 +1,5 @@
 {
-  "version": 2,
-  "regions": ["iad1", "fra1"],
+  "crons": [],
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30

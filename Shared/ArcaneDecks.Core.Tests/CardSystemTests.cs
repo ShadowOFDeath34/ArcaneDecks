@@ -83,4 +83,40 @@ public class CardSystemTests
 
         Assert.Equal(4, damage);
     }
+
+    [Fact]
+    public void GetAllCards_ReturnsAllRegistered()
+    {
+        _system.RegisterCard(CreateCard("a", 1, CardRarity.Common, new CardEffect(EffectType.Damage, 1)));
+        _system.RegisterCard(CreateCard("b", 1, CardRarity.Common, new CardEffect(EffectType.Damage, 2)));
+
+        var all = _system.GetAllCards().ToList();
+
+        Assert.Equal(2, all.Count);
+    }
+
+    [Fact]
+    public void RegisterCard_OverwritesExisting()
+    {
+        _system.RegisterCard(CreateCard("same", 1, CardRarity.Common, new CardEffect(EffectType.Damage, 1)));
+        _system.RegisterCard(CreateCard("same", 2, CardRarity.Uncommon, new CardEffect(EffectType.Damage, 5)));
+
+        var result = _system.GetCard("same");
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Cost);
+        Assert.Equal(CardRarity.Uncommon, result.Rarity);
+    }
+
+    [Fact]
+    public void CalculateDamage_OnlyFirstDamageEffectCounts()
+    {
+        var card = CreateCard("double", 1, CardRarity.Common,
+            new CardEffect(EffectType.Damage, 3),
+            new CardEffect(EffectType.Damage, 7));
+
+        var damage = _system.CalculateDamage(card, 2);
+
+        Assert.Equal(5, damage); // 3 + 2, ignores second damage effect
+    }
 }

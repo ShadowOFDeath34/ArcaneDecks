@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
@@ -22,6 +23,9 @@ public class MainMenuScreen : IScreen
     private Texture2D? _pixel;
     private readonly List<MenuButton> _buttons = new();
     private InputState _previousInput;
+
+    private readonly List<SeasonalEventDto> _activeEvents = new();
+    private bool _eventsLoaded;
 
     public MainMenuScreen(ScreenManager screenManager, ILocalizationService localization, CardSystem cardSystem, CombatSystem combatSystem, RunManager runManager, List<EnemyTemplate> enemyTemplates)
     {
@@ -53,7 +57,24 @@ public class MainMenuScreen : IScreen
         _buttons.Clear();
     }
 
-    public void Show() { }
+    public void Show()
+    {
+        _screenManager.AnalyticsService?.TrackEvent("screen_view", new Dictionary<string, object> { ["screen"] = "main_menu" });
+
+        if (!_eventsLoaded)
+        {
+            _ = Task.Run(async () =>
+            {
+                var events = await _screenManager.BackendService?.GetActiveSeasonalEventsAsync()!;
+                if (events != null && events.Count > 0)
+                {
+                    _activeEvents.Clear();
+                    _activeEvents.AddRange(events);
+                }
+                _eventsLoaded = true;
+            });
+        }
+    }
     public void Hide() { }
 
     public void Update(GameTime gameTime, InputState input)
@@ -129,11 +150,16 @@ public class MainMenuScreen : IScreen
         if (hasActiveRun)
         {
             labels.Add(_localization.Get("ui.main_menu.continue_run"));
-            actions.Add(() => _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates)));
+            actions.Add(() =>
+            {
+                _screenManager.AnalyticsService?.TrackEvent("run_started", new Dictionary<string, object> { ["type"] = "continue" });
+                _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates));
+            });
 
             labels.Add(_localization.Get("ui.main_menu.new_run"));
             actions.Add(() =>
             {
+                _screenManager.AnalyticsService?.TrackEvent("run_started", new Dictionary<string, object> { ["type"] = "new" });
                 _runManager.StartRun();
                 _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates));
             });
@@ -143,13 +169,33 @@ public class MainMenuScreen : IScreen
             labels.Add(_localization.Get("ui.main_menu.start_run"));
             actions.Add(() =>
             {
+                _screenManager.AnalyticsService?.TrackEvent("run_started", new Dictionary<string, object> { ["type"] = "new" });
                 _runManager.StartRun();
+                _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates));
+            });
+        }
+
+        // Seasonal event run button
+        if (_activeEvents.Count > 0)
+        {
+            var ev = _activeEvents[0];
+            labels.Add($"{ev.Name}");
+            actions.Add(() =>
+            {
+                _screenManager.AnalyticsService?.TrackEvent("run_started", new Dictionary<string, object> { ["type"] = "seasonal", ["event_key"] = ev.EventKey });
+                _runManager.StartSeasonalRun(ev.Id, ev.EventKey, ev.Rules);
                 _screenManager.ChangeScreen(new BattleScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates));
             });
         }
 
         labels.Add(_localization.Get("ui.main_menu.deck"));
         actions.Add(() => _screenManager.ChangeScreen(new DeckScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates)));
+
+        labels.Add(_localization.Get("ui.main_menu.meta"));
+        actions.Add(() => _screenManager.ChangeScreen(new MetaShopScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates)));
+
+        labels.Add(_localization.Get("ui.main_menu.iap_shop"));
+        actions.Add(() => _screenManager.ChangeScreen(new IAPShopScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates)));
 
         labels.Add(_localization.Get("ui.main_menu.settings"));
         actions.Add(() => _screenManager.ChangeScreen(new SettingsScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, _enemyTemplates)));

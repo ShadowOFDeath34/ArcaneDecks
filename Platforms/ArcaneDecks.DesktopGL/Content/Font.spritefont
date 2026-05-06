@@ -58,6 +58,10 @@
         <Start>&#252;</Start>
         <End>&#252;</End>
       </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#8212;</Start>
+        <End>&#8212;</End>
+      </CharacterRegion>
     </CharacterRegions>
   </Asset>
 </XnaContent>

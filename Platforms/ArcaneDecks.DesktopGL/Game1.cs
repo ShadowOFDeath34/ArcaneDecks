@@ -9,6 +9,7 @@ using Microsoft.Xna.Framework.Input;
 using ArcaneDecks.Core.Services;
 using ArcaneDecks.Core.Systems;
 using ArcaneDecks.Core.Screens;
+using Sentry;
 
 namespace ArcaneDecks.DesktopGL;
 
@@ -35,6 +36,19 @@ public class Game1 : Game
         IsMouseVisible = true;
         _graphics.PreferredBackBufferWidth = 1280;
         _graphics.PreferredBackBufferHeight = 720;
+
+        var sentryDsn = Environment.GetEnvironmentVariable("SENTRY_DSN");
+        if (!string.IsNullOrEmpty(sentryDsn))
+        {
+            SentrySdk.Init(o =>
+            {
+                o.Dsn = sentryDsn;
+                o.Release = "arcane-decks-desktop@1.0.0";
+                o.Environment = Environment.GetEnvironmentVariable("ARCANE_ENV") ?? "production";
+            });
+        }
+
+        Exiting += (_, _) => SentrySdk.Close();
     }
 
     protected override void Initialize()
@@ -53,6 +67,9 @@ public class Game1 : Game
         _combatSystem = new CombatSystem();
         _runManager = new RunManager(_cardSystem);
 
+        var metaProgression = new MetaProgressionSystem();
+        _runManager.MetaProgressionSystem = metaProgression;
+
         _dataLoader = new GameDataLoader(Path.Combine(AppContext.BaseDirectory, "Data"));
         foreach (var card in _dataLoader.LoadCards())
             _cardSystem.RegisterCard(card);
@@ -69,10 +86,27 @@ public class Game1 : Game
 
         _backendService = new HttpBackendService(httpClient, _authService, apiBaseUrl);
 
+        var postHogKey = Environment.GetEnvironmentVariable("POSTHOG_API_KEY");
+        var analyticsService = new PostHogAnalyticsService(postHogKey ?? string.Empty, _authService.DeviceId);
+
+        var adService = new DesktopAdService();
+        adService.Initialize();
+
+        var iapService = new DesktopIAPService();
+        iapService.Initialize();
+
+        var steamService = new SteamworksService();
+        steamService.Initialize();
+
         _screenManager = new ScreenManager(GraphicsDevice, Content)
         {
             AuthService = _authService,
-            BackendService = _backendService
+            BackendService = _backendService,
+            AdService = adService,
+            IAPService = iapService,
+            SteamService = steamService,
+            AnalyticsService = analyticsService,
+            MetaProgressionSystem = metaProgression
         };
 
         _ = Task.Run(async () =>
@@ -86,6 +120,12 @@ public class Game1 : Game
             {
                 _runManager.RestoreState(cloudState);
             }
+
+            var metaDto = await _backendService.LoadMetaProgressAsync();
+            if (metaDto != null)
+            {
+                metaProgression.LoadFromDto(metaDto);
+            }
         });
 
         _screenManager.ChangeScreen(new MainMenuScreen(_screenManager, _localization, _cardSystem, _combatSystem, _runManager, enemyTemplates));
@@ -94,31 +134,48 @@ public class Game1 : Game
 
     protected override void Update(GameTime gameTime)
     {
-        if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-            Exit();
+        try
+        {
+            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
+                Exit();
 
-        var mouse = Mouse.GetState();
-        var keyboard = Keyboard.GetState();
+            var mouse = Mouse.GetState();
+            var keyboard = Keyboard.GetState();
 
-        var input = new InputState(
-            MouseLeftPressed: mouse.LeftButton == ButtonState.Pressed,
-            MouseLeftReleased: _previousMouse.LeftButton == ButtonState.Pressed && mouse.LeftButton == ButtonState.Released,
-            MousePosition: new Point(mouse.X, mouse.Y),
-            KeyEscapePressed: keyboard.IsKeyDown(Keys.Escape) && _previousKeyboard.IsKeyUp(Keys.Escape)
-        );
+            var input = new InputState(
+                MouseLeftPressed: mouse.LeftButton == ButtonState.Pressed,
+                MouseLeftReleased: _previousMouse.LeftButton == ButtonState.Pressed && mouse.LeftButton == ButtonState.Released,
+                MousePosition: new Point(mouse.X, mouse.Y),
+                KeyEscapePressed: keyboard.IsKeyDown(Keys.Escape) && _previousKeyboard.IsKeyUp(Keys.Escape)
+            );
 
-        _screenManager.Update(gameTime, input);
+            _screenManager.Update(gameTime, input);
 
-        _previousMouse = mouse;
-        _previousKeyboard = keyboard;
+            _previousMouse = mouse;
+            _previousKeyboard = keyboard;
 
-        base.Update(gameTime);
+            base.Update(gameTime);
+        }
+        catch (Exception ex)
+        {
+            SentrySdk.CaptureException(ex);
+            throw;
+        }
     }
 
     protected override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(Color.CornflowerBlue);
-        _screenManager.Draw(gameTime, _spriteBatch);
-        base.Draw(gameTime);
+        try
+        {
+            GraphicsDevice.Clear(Color.CornflowerBlue);
+            _screenManager.Draw(gameTime, _spriteBatch);
+            base.Draw(gameTime);
+        }
+        catch (Exception ex)
+        {
+            SentrySdk.CaptureException(ex);
+            throw;
+        }
     }
+
 }

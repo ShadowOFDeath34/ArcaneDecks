@@ -10,8 +10,8 @@ public class RunState
 {
     public bool IsActive { get; set; }
     public int CurrentFloor { get; set; }
-    public int PlayerMaxHealth { get; set; } = 50;
-    public int PlayerCurrentHealth { get; set; } = 50;
+    public int PlayerMaxHealth { get; set; } = 55;
+    public int PlayerCurrentHealth { get; set; } = 55;
     public List<string> DeckCardIds { get; set; } = new();
     public List<string> DrawPile { get; set; } = new();
     public List<string> DiscardPile { get; set; } = new();
@@ -19,6 +19,9 @@ public class RunState
     public int Score { get; set; }
     public bool IsVictory { get; set; }
     public List<FloorType> FloorPlan { get; set; } = new();
+    public string? SeasonalEventId { get; set; }
+    public string? SeasonalEventKey { get; set; }
+    public Dictionary<string, object> SeasonalRules { get; set; } = new();
 }
 
 public class RunManager
@@ -26,6 +29,7 @@ public class RunManager
     public RunState State { get; } = new();
     private readonly CardSystem _cardSystem;
     private readonly Random _random = new();
+    public MetaProgressionSystem? MetaProgressionSystem { get; set; }
 
     public RunManager(CardSystem cardSystem)
     {
@@ -47,15 +51,51 @@ public class RunManager
         State.IsActive = true;
         State.IsVictory = false;
         State.CurrentFloor = 1;
-        State.PlayerMaxHealth = 50;
-        State.PlayerCurrentHealth = 50;
+        State.PlayerMaxHealth = 55;
+        State.PlayerCurrentHealth = 55;
         State.DeckCardIds = new List<string>(starterCards);
         State.DrawPile = new List<string>(State.DeckCardIds);
         State.DiscardPile = new List<string>();
         State.Gold = 0;
         State.Score = 0;
         State.FloorPlan = GenerateFloorPlan();
+        State.SeasonalEventId = null;
+        State.SeasonalEventKey = null;
+        State.SeasonalRules = new Dictionary<string, object>();
+        MetaProgressionSystem?.ApplyToRun(State);
         Shuffle(State.DrawPile);
+    }
+
+    public void StartSeasonalRun(string eventId, string eventKey, Dictionary<string, object> rules)
+    {
+        StartRun();
+        State.SeasonalEventId = eventId;
+        State.SeasonalEventKey = eventKey;
+        State.SeasonalRules = new Dictionary<string, object>(rules);
+
+        // Apply event modifiers
+        if (rules.TryGetValue("startingHealthModifier", out var healthMod) && healthMod is double healthModVal)
+        {
+            State.PlayerMaxHealth += (int)healthModVal;
+            State.PlayerCurrentHealth = State.PlayerMaxHealth;
+        }
+        if (rules.TryGetValue("startingGold", out var startGold) && startGold is double goldVal)
+        {
+            State.Gold = (int)goldVal;
+        }
+        if (rules.TryGetValue("forcedCards", out var forced) && forced is List<object> forcedList)
+        {
+            foreach (var cardIdObj in forcedList)
+            {
+                var cardId = cardIdObj?.ToString();
+                if (!string.IsNullOrEmpty(cardId) && !State.DeckCardIds.Contains(cardId))
+                {
+                    State.DeckCardIds.Add(cardId);
+                    State.DrawPile.Add(cardId);
+                }
+            }
+            Shuffle(State.DrawPile);
+        }
     }
 
     public void RestoreState(RunState state)
@@ -72,6 +112,9 @@ public class RunManager
         State.Gold = state.Gold;
         State.Score = state.Score;
         State.FloorPlan = new List<FloorType>(state.FloorPlan);
+        State.SeasonalEventId = state.SeasonalEventId;
+        State.SeasonalEventKey = state.SeasonalEventKey;
+        State.SeasonalRules = new Dictionary<string, object>(state.SeasonalRules);
     }
 
     public void EndRun(bool victory)
@@ -81,6 +124,12 @@ public class RunManager
         if (victory)
         {
             State.Score += State.Gold * 10 + State.CurrentFloor * 100;
+        }
+
+        // Apply seasonal score multiplier if present
+        if (State.SeasonalRules.TryGetValue("scoreMultiplier", out var multObj) && multObj is double mult)
+        {
+            State.Score = (int)(State.Score * mult);
         }
     }
 

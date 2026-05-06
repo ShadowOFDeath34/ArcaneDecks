@@ -202,11 +202,11 @@ public class ShopScreen : IScreen
         var offeredCard = candidates[random.Next(candidates.Count)];
         int cardCost = offeredCard.Rarity switch
         {
-            CardRarity.Common => 50,
-            CardRarity.Uncommon => 80,
-            CardRarity.Rare => 120,
-            CardRarity.Legendary => 200,
-            _ => 50
+            CardRarity.Common => 35,
+            CardRarity.Uncommon => 60,
+            CardRarity.Rare => 90,
+            CardRarity.Legendary => 150,
+            _ => 35
         };
 
         _items.Add(new ShopItem
@@ -223,7 +223,7 @@ public class ShopScreen : IScreen
             NameKey = "ui.shop.heal_name",
             DescriptionKey = "ui.shop.heal_desc",
             DescriptionArgs = new object[] { 10 },
-            Cost = 40,
+            Cost = 30,
             OnBuy = () => _runManager.HealPlayer(10),
         });
 
@@ -233,7 +233,7 @@ public class ShopScreen : IScreen
             NameKey = "ui.shop.max_health_name",
             DescriptionKey = "ui.shop.max_health_desc",
             DescriptionArgs = new object[] { 5 },
-            Cost = 60,
+            Cost = 50,
             OnBuy = () =>
             {
                 _runManager.State.PlayerMaxHealth += 5;

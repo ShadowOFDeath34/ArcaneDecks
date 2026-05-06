@@ -25,6 +25,8 @@
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.*" />
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.*" />
+    <PackageReference Include="Sentry" Version="5.4.0" />
+    <PackageReference Include="Steamworks.NET" Version="20.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\ArcaneDecks.Core\ArcaneDecks.Core.csproj" />

@@ -120,6 +120,57 @@ public class HttpBackendService : IBackendService
         }
     }
 
+    public async Task<bool> SaveMetaProgressAsync(Dictionary<string, object> meta)
+    {
+        if (!_auth.IsAuthenticated) return false;
+
+        var dto = new MetaProgressDto
+        {
+            MetaProgress = meta,
+        };
+
+        var json = JsonSerializer.Serialize(dto);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/v1/progress")
+        {
+            Content = content
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _auth.Token);
+
+        try
+        {
+            var response = await _http.SendAsync(request);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<Dictionary<string, object>?> LoadMetaProgressAsync()
+    {
+        if (!_auth.IsAuthenticated) return null;
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/v1/progress");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _auth.Token);
+
+        try
+        {
+            var response = await _http.SendAsync(request);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ProgressResponseDto>(json);
+            return result?.Data?.MetaUpgrades;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<List<LeaderboardEntryDto>> GetLeaderboardAsync(string leaderboardId)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/v1/leaderboards/{leaderboardId}");
@@ -140,6 +191,78 @@ public class HttpBackendService : IBackendService
         catch
         {
             return new List<LeaderboardEntryDto>();
+        }
+    }
+
+    public async Task<List<SeasonalEventDto>> GetActiveSeasonalEventsAsync()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/v1/events/active");
+        if (_auth.IsAuthenticated)
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _auth.Token);
+        }
+
+        try
+        {
+            var response = await _http.SendAsync(request);
+            if (!response.IsSuccessStatusCode) return new List<SeasonalEventDto>();
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<SeasonalEventListDto>(json);
+            return result?.Events ?? new List<SeasonalEventDto>();
+        }
+        catch
+        {
+            return new List<SeasonalEventDto>();
+        }
+    }
+
+    public async Task<SeasonalEventSubmitResultDto?> SubmitSeasonalEventScoreAsync(string eventId, int score, int floor)
+    {
+        if (!_auth.IsAuthenticated) return null;
+
+        var dto = new { score, floor };
+        var json = JsonSerializer.Serialize(dto);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/v1/events/{eventId}")
+        {
+            Content = content
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _auth.Token);
+
+        try
+        {
+            var response = await _http.SendAsync(request);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var responseJson = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<SeasonalEventSubmitResultDto>(responseJson);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<SeasonalEventClaimResultDto?> ClaimSeasonalEventRewardAsync(string eventId)
+    {
+        if (!_auth.IsAuthenticated) return null;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/v1/events/{eventId}/claim");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _auth.Token);
+
+        try
+        {
+            var response = await _http.SendAsync(request);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<SeasonalEventClaimResultDto>(json);
+        }
+        catch
+        {
+            return null;
         }
     }
 }

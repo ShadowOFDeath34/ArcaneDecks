@@ -1,15 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net9.0-android</TargetFramework>
-    <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
     <OutputType>Exe</OutputType>
     <ApplicationId>com.companyname.ArcaneDecks.Android</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
   </PropertyGroup>
   <ItemGroup>
+    <AndroidManifest Include="AndroidManifest.xml">
+      <MergeManifests>false</MergeManifests>
+    </AndroidManifest>
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.*" />
     <PackageReference Include="MonoGame.Framework.Android" Version="3.8.*" />
+    <PackageReference Include="Sentry" Version="5.4.0" />
+    <PackageReference Include="Xamarin.GooglePlayServices.Ads" Version="124.9.0.1" />
+    <PackageReference Include="Xamarin.Android.Google.BillingClient" Version="8.3.0.2" />
+    <PackageReference Include="Xamarin.AndroidX.Compose.Runtime.Annotation.Jvm" Version="1.10.0.1">
+      <ExcludeAssets>all</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\ArcaneDecks.Core\ArcaneDecks.Core.csproj" />

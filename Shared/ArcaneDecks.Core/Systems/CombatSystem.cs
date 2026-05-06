@@ -185,7 +185,11 @@ public class CombatSystem
             }
         }
 
-        if (Player != null) Player.TickStatusEffects();
+        if (Player != null)
+        {
+            Player.TickStatusEffects();
+            Player.Armor = 0;
+        }
 
         CurrentTurn++;
         IsPlayerTurn = true;
@@ -213,7 +217,7 @@ public class CombatSystem
 
     public int GetRewardGold()
     {
-        return Enemies.Count * 10 + CurrentTurn * 2;
+        return Enemies.Count * 12 + CurrentTurn * 3 + 5;
     }
 
     private void EntityDied(CombatEntity entity)

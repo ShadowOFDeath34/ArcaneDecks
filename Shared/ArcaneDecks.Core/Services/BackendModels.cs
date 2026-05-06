@@ -48,6 +48,12 @@ public class ProgressResponseDto
     public ProgressDataDto? Data { get; set; }
 }
 
+public class MetaProgressDto
+{
+    [JsonPropertyName("meta_progress")]
+    public Dictionary<string, object> MetaProgress { get; set; } = new();
+}
+
 public class LeaderboardSubmitDto
 {
     [JsonPropertyName("playerId")]
@@ -79,4 +85,67 @@ public class LeaderboardResponseDto
 {
     [JsonPropertyName("data")]
     public List<LeaderboardEntryDto> Data { get; set; } = new();
+}
+
+public class SeasonalEventDto
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("event_key")]
+    public string EventKey { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = string.Empty;
+
+    [JsonPropertyName("start_at")]
+    public string StartAt { get; set; } = string.Empty;
+
+    [JsonPropertyName("end_at")]
+    public string EndAt { get; set; } = string.Empty;
+
+    [JsonPropertyName("rules_json")]
+    public Dictionary<string, object> Rules { get; set; } = new();
+
+    [JsonPropertyName("reward_teeth")]
+    public int RewardTeeth { get; set; }
+
+    [JsonPropertyName("reward_card_id")]
+    public string? RewardCardId { get; set; }
+}
+
+public class SeasonalEventListDto
+{
+    [JsonPropertyName("events")]
+    public List<SeasonalEventDto> Events { get; set; } = new();
+}
+
+public class SeasonalEventSubmitResultDto
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+
+    [JsonPropertyName("bestScore")]
+    public int BestScore { get; set; }
+
+    [JsonPropertyName("bestFloor")]
+    public int BestFloor { get; set; }
+
+    [JsonPropertyName("runsCompleted")]
+    public int RunsCompleted { get; set; }
+}
+
+public class SeasonalEventClaimResultDto
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+
+    [JsonPropertyName("rewardTeeth")]
+    public int RewardTeeth { get; set; }
+
+    [JsonPropertyName("rewardCardId")]
+    public string? RewardCardId { get; set; }
 }
