@@ -136,7 +136,7 @@ jobs:
           path: ${{ github.workspace }}/publish/ios
 
   release:
-    needs: [build-desktopgl, build-android, build-ios]
+    needs: [build-desktopgl, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
